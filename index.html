@@ -78,7 +78,7 @@ input:focus{border-color:var(--acc)}
 <script>
 const KEY="sparrechner_v3";
 function load(){try{const r=localStorage.getItem(KEY);if(r)return JSON.parse(r)}catch(e){}return{dailyBudget:50,entries:{}}}
-let S=load(),view="today",amt="",note="",tmpB=""+S.dailyBudget;
+let S=load(),view="today",amt="",note="",tmpB=""+S.dailyBudget,editDay=null;
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 function tKey(){const d=new Date();return d.getFullYear()+"-"+d.getMonth()+"-"+d.getDate()}
 function tEntry(){return S.entries[tKey()]||{spent:0,items:[]}}
@@ -123,11 +123,13 @@ function render(){
   const today=new Date();
   document.getElementById("app").innerHTML=
     '<div class="hdr"><div><div class="hdr-sub">'+today.toLocaleDateString("de-CH",{weekday:"long",day:"numeric",month:"long"})+'</div><div class="hdr-title">Sparrechner</div></div><button class="gear" onclick="go(\'settings\')">&#9881; Budget</button></div>'+
-    '<div class="nav"><button class="ntab '+(view==="today"?"on":"")+'" onclick="go(\'today\')">Heute</button><button class="ntab '+(view==="month"?"on":"")+'" onclick="go(\'month\')">Monat</button></div>'+
+    '<div class="nav"><button class="ntab '+(view==="today"?"on":"")+'" onclick="go(\'today\')">Heute</button><button class="ntab '+(view==="month"||view==="editday"?"on":"")+'" onclick="go(\'month\')">Monat</button></div>'+
     (view==="today"?vToday(e,rem,over):"")+
     (view==="month"?vMonth(ms):"")+
+    (view==="editday"?vEditDay():"")+
     (view==="settings"?vSettings():"");
   if(view==="today"){var i=document.getElementById("ai");if(i)i.value=amt;var n=document.getElementById("ni");if(n)n.value=note;}
+  if(view==="editday"){var i=document.getElementById("ai");if(i)i.value=amt;var n=document.getElementById("ni");if(n)n.value=note;}
   if(view==="settings"){var b=document.getElementById("bi");if(b)b.value=tmpB;}
 }
 function vToday(e,rem,over){
@@ -155,7 +157,8 @@ function vMonth(ms){
     var sp=day.spent,diff=sp!==null?S.dailyBudget-sp:null,ov=diff!==null&&diff<0;
     var bp=sp!==null?Math.min(100,(sp/S.dailyBudget)*100):0;
     var label=("0"+day.d).slice(-2)+"."+("0"+(day.m+1)).slice(-2);
-    rows.push('<div class="drow" style="opacity:'+(!day.isPast&&!day.isToday?.3:1)+'">'+
+    var clickable=day.isPast||day.isToday;
+    rows.push('<div class="drow" style="opacity:'+(!day.isPast&&!day.isToday?.3:1)+(clickable?';cursor:pointer':'')+'"'+(clickable?' onclick="openDay(\''+day.key+'\','+day.d+','+(day.m+1)+','+day.y+')"':'')+'>'+
       '<div class="dnum '+(day.isToday?"td":"")+'">'+label+'</div>'+
       '<div style="flex:1"><div class="dbar"><div class="dbar-fill" style="width:'+bp+'%;background:'+(ov?"var(--red)":"var(--grn)")+'"></div></div></div>'+
       '<div class="dmeta">'+(sp!==null?'<div class="dsp" style="color:'+(ov?"var(--red)":"var(--txt)")+'">'+sp.toFixed(2)+'</div><div class="ddf" style="color:'+(ov?"var(--red)":"var(--grn)")+'">'+(ov?"+"+Math.abs(diff).toFixed(2):"-"+diff.toFixed(2))+'</div>':'<span style="font-size:12px;color:var(--brd)">&#8212;</span>')+'</div>'+
@@ -181,7 +184,56 @@ function vSettings(){
     '<div class="prgrid">'+btns+'</div>'+
     '<button class="sbtn" onclick="saveBudget()">Speichern</button></div></div>';
 }
-function go(v){view=v;render()}
+function go(v){view=v;editDay=null;amt="";note="";render()}
+function openDay(key,d,m,y){
+  editDay={key:key,d:d,m:m,y:y};
+  amt="";note="";
+  // If this day is today, go to the today view instead
+  var now=new Date();
+  if(d===now.getDate()&&(m-1)===now.getMonth()&&y===now.getFullYear()){view="today";editDay=null;}
+  else{view="editday";}
+  render();
+}
+function vEditDay(){
+  if(!editDay)return"";
+  var e=S.entries[editDay.key]||{spent:0,items:[]};
+  var rem=S.dailyBudget-e.spent,over=rem<0;
+  var label=("0"+editDay.d).slice(-2)+"."+("0"+editDay.m).slice(-2)+"."+editDay.y;
+  var items=e.items.map(function(it,i){
+    return'<div class="irow"><div style="flex:1"><div class="iname">'+(it.note||"Ausgabe")+'</div><div class="itime">'+it.time+'</div></div><div class="iamt">-'+it.amount.toFixed(2)+'</div><button class="xbtn" onclick="delForDay('+i+')">&#215;</button></div>';
+  }).join("");
+  return'<div class="view">'+
+    '<div class="card"><div style="display:flex;align-items:center;gap:10px;margin-bottom:13px"><button class="gear" onclick="go(\'month\')" style="padding:6px 10px">&larr;</button><div class="clbl" style="margin-bottom:0">'+label+'</div></div>'+
+    '<div style="text-align:center;padding:10px 0 6px">'+
+    '<div style="font-size:48px;font-weight:800;line-height:1;color:'+(over?"var(--red)":"var(--txt)")+'">'+e.spent.toFixed(2)+'</div>'+
+    '<div style="font-size:12px;color:var(--mut);margin:6px 0 12px">von CHF '+S.dailyBudget.toFixed(2)+'</div>'+
+    '<div class="badge '+(over?"r":"g")+'">'+(over?"&#9650; "+Math.abs(rem).toFixed(2)+" CHF &uuml;berzogen":"&#9660; "+rem.toFixed(2)+" CHF &uuml;brig")+'</div>'+
+    '</div></div>'+
+    '<div class="card"><div class="clbl">Ausgabe erfassen</div>'+
+    '<div class="arow"><input id="ai" class="ainp" type="number" inputmode="decimal" placeholder="0.00" oninput="amt=this.value" onkeydown="if(event.key===\'Enter\')addForDay()"/><span class="unit">CHF</span></div>'+
+    '<input id="ni" class="ninp" type="text" placeholder="Notiz (optional)" oninput="note=this.value" onkeydown="if(event.key===\'Enter\')addForDay()"/>'+
+    '<div class="qrow"><button class="qbtn" onclick="quickForDay(5)">5</button><button class="qbtn" onclick="quickForDay(10)">10</button><button class="qbtn" onclick="quickForDay(20)">20</button><button class="qbtn" onclick="quickForDay(50)">50</button></div>'+
+    '<button class="abtn" onclick="addForDay()">+ Hinzuf&uuml;gen</button></div>'+
+    (e.items.length?'<div class="card"><div class="clbl">Eintr&auml;ge</div>'+items+'</div>':'')+
+    '</div>';
+}
+function quickForDay(v){amt=String(v);render();var i=document.getElementById("ai");if(i){i.focus();i.value=v;}}
+function addForDay(){
+  if(!editDay)return;
+  var a=parseFloat(amt);
+  if(isNaN(a)||a<=0)return;
+  var k=editDay.key,prev=S.entries[k]||{spent:0,items:[]};
+  var time=("0"+editDay.d).slice(-2)+"."+("0"+editDay.m).slice(-2)+" nachtr.";
+  S.entries[k]={spent:prev.spent+a,items:prev.items.concat([{amount:a,note:note.trim()||null,time:time}])};
+  amt="";note="";save();showToast();render();
+}
+function delForDay(i){
+  if(!editDay)return;
+  var k=editDay.key,prev=S.entries[k];if(!prev)return;
+  var ni=prev.items.filter(function(_,j){return j!==i;});
+  S.entries[k]={spent:ni.reduce(function(s,x){return s+x.amount;},0),items:ni};
+  save();render();
+}
 function quick(v){amt=String(v);render();var i=document.getElementById("ai");if(i){i.focus();i.value=v;}}
 function preset(v){tmpB=String(v);render()}
 function add(){
