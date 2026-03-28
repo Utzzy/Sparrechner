@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<title>Sparrechner</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f0e17;--surf:#1a1928;--brd:#2d2b45;--brd2:#1e1d2e;
+  --txt:#fffffe;--mut:#a7a9be;--acc:#ff8906;
+  --grn:#21b58a;--red:#f25f4c;--ylw:#e8a838;
+}
+html,body{height:100%;background:var(--bg);color:var(--txt);font-family:ui-monospace,'Courier New',monospace;-webkit-font-smoothing:antialiased;overflow:hidden}
+#app{display:flex;flex-direction:column;height:100dvh;max-width:430px;margin:0 auto}
+.hdr{padding:max(env(safe-area-inset-top),20px) 18px 13px;border-bottom:1px solid var(--brd2);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.hdr-sub{font-size:10px;color:var(--mut);letter-spacing:2px;text-transform:uppercase;margin-bottom:2px}
+.hdr-title{font-size:21px;font-weight:800;color:var(--acc);letter-spacing:-0.5px}
+.gear{background:none;border:1px solid var(--brd);border-radius:8px;padding:6px 11px;color:var(--mut);cursor:pointer;font-size:12px;font-family:inherit}
+.nav{display:flex;border-bottom:1px solid var(--brd2);flex-shrink:0}
+.ntab{flex:1;padding:12px;background:none;border:none;border-bottom:2px solid transparent;color:var(--mut);cursor:pointer;font-size:11px;letter-spacing:2px;text-transform:uppercase;font-family:inherit;transition:all .2s}
+.ntab.on{border-bottom-color:var(--acc);color:var(--acc)}
+.view{flex:1;overflow-y:auto;padding:16px 15px max(env(safe-area-inset-bottom),16px);display:flex;flex-direction:column;gap:13px}
+.view::-webkit-scrollbar{display:none}
+.card{background:var(--surf);border:1px solid var(--brd);border-radius:16px;padding:16px}
+.clbl{font-size:10px;color:var(--mut);letter-spacing:3px;text-transform:uppercase;margin-bottom:13px}
+.gc{text-align:center}
+.ga{font-size:34px;font-weight:800;line-height:1;margin-top:-4px}
+.gs{font-size:11px;color:var(--mut);margin-top:3px;margin-bottom:10px}
+.badge{display:inline-flex;align-items:center;border-radius:99px;padding:5px 14px;font-size:12px;border:1px solid}
+.badge.g{color:var(--grn);border-color:var(--grn);background:#21b58a18}
+.badge.r{color:var(--red);border-color:var(--red);background:#f25f4c18}
+input{background:var(--bg);border:1px solid #3d3b57;border-radius:10px;padding:12px 13px;color:var(--txt);font-family:inherit;outline:none;-webkit-appearance:none}
+input:focus{border-color:var(--acc)}
+.arow{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.ainp{flex:1;font-size:26px;font-weight:600;width:0}
+.unit{font-size:15px;color:var(--mut);flex-shrink:0}
+.ninp{width:100%;font-size:13px;color:var(--mut);margin-bottom:10px}
+.qrow{display:flex;gap:6px;margin-bottom:10px}
+.qbtn{flex:1;background:var(--bg);border:1px solid #3d3b57;border-radius:8px;padding:9px 2px;color:var(--mut);cursor:pointer;font-size:13px;font-family:inherit}
+.qbtn:active{background:var(--brd)}
+.abtn{width:100%;background:var(--acc);border:none;border-radius:11px;padding:14px;color:var(--bg);cursor:pointer;font-size:14px;font-family:inherit;font-weight:600;transition:background .3s}
+.abtn.ok{background:var(--grn)}
+.abtn:active{opacity:.85}
+.irow{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--brd2)}
+.irow:last-child{border-bottom:none}
+.iname{font-size:13px}
+.itime{font-size:10px;color:var(--mut);margin-top:2px}
+.iamt{font-size:14px;font-weight:600;color:var(--red)}
+.xbtn{background:none;border:none;color:#3d3b57;cursor:pointer;font-size:18px;padding:2px 5px;line-height:1}
+.sgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sbox{background:var(--bg);border:1px solid var(--brd);border-radius:11px;padding:11px}
+.slbl{font-size:9px;color:var(--mut);letter-spacing:2px;text-transform:uppercase;margin-bottom:4px}
+.sval{font-size:15px;font-weight:600}
+.pbar-hdr{display:flex;justify-content:space-between;margin-bottom:7px;font-size:11px}
+.pbar-track{background:var(--brd);border-radius:99px;height:8px;overflow:hidden}
+.pbar-fill{height:100%;border-radius:99px;transition:width .5s}
+.drow{display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid var(--brd2)}
+.drow:last-child{border-bottom:none}
+.dnum{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;border:1px solid var(--brd);color:var(--mut)}
+.dnum.td{background:var(--acc);border-color:var(--acc);color:var(--bg);font-weight:700}
+.dbar{flex:1;background:var(--brd2);border-radius:99px;height:4px;overflow:hidden}
+.dbar-fill{height:100%;border-radius:99px}
+.dmeta{text-align:right;min-width:65px}
+.dsp{font-size:12px;font-weight:600}
+.ddf{font-size:10px;margin-top:1px}
+.prgrid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:13px}
+.pbtn{background:var(--bg);border:1px solid var(--brd);border-radius:9px;padding:10px 2px;color:var(--txt);cursor:pointer;font-size:13px;font-family:inherit;transition:all .15s}
+.pbtn.on{background:var(--acc);border-color:var(--acc);color:var(--bg);font-weight:700}
+.sbtn{width:100%;background:var(--acc);border:none;border-radius:11px;padding:14px;color:var(--bg);cursor:pointer;font-size:14px;font-family:inherit;font-weight:600}
+.toast{position:fixed;bottom:max(env(safe-area-inset-bottom),20px);left:50%;transform:translateX(-50%);background:var(--grn);color:var(--bg);padding:9px 22px;border-radius:99px;font-size:13px;font-weight:600;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;z-index:99}
+.toast.on{opacity:1}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div class="toast" id="toast">&#10003; Gespeichert</div>
+<script>
+const KEY="sparrechner_v3";
+function load(){try{const r=localStorage.getItem(KEY);if(r)return JSON.parse(r)}catch(e){}return{dailyBudget:50,entries:{}}}
+let S=load(),view="today",amt="",note="",tmpB=""+S.dailyBudget;
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+function tKey(){const d=new Date();return d.getFullYear()+"-"+d.getMonth()+"-"+d.getDate()}
+function tEntry(){return S.entries[tKey()]||{spent:0,items:[]}}
+function dim(y,m){return new Date(y,m+1,0).getDate()}
+function getPeriod(){
+  var now=new Date(),d=now.getDate(),m=now.getMonth(),y=now.getFullYear();
+  var startD,startM,startY,endM,endY;
+  if(d>=25){startD=25;startM=m;startY=y;endM=m+1>11?0:m+1;endY=m+1>11?y+1:y;}
+  else{startM=m-1<0?11:m-1;startY=m-1<0?y-1:y;startD=25;endM=m;endY=y;}
+  return{startD,startM,startY,endD:24,endM,endY};
+}
+function mStats(){
+  var now=new Date(),p=getPeriod();
+  var cur=new Date(p.startY,p.startM,p.startD);
+  var endDate=new Date(p.endY,p.endM,p.endD);
+  var tot=0,cnt=0,days=0,dayList=[];
+  while(cur<=endDate){
+    var yk=cur.getFullYear(),mk=cur.getMonth(),dk=cur.getDate();
+    var key=yk+"-"+mk+"-"+dk;
+    var e=S.entries[key];
+    var isToday=(yk===now.getFullYear()&&mk===now.getMonth()&&dk===now.getDate());
+    var isPast=cur<now&&!isToday;
+    if(e){tot+=e.spent;cnt++;}
+    dayList.push({y:yk,m:mk,d:dk,key:key,isPast:isPast,isToday:isToday,spent:e?e.spent:null});
+    days++;
+    cur=new Date(cur.getFullYear(),cur.getMonth(),cur.getDate()+1);
+  }
+  var mb=S.dailyBudget*days;
+  var pad=function(n){return("0"+n).slice(-2);};
+  var label=p.startD+"."+pad(p.startM+1)+"."+p.startY+" – "+p.endD+"."+pad(p.endM+1)+"."+p.endY;
+  return{tot,cnt,days,mb,sav:mb-tot,dayList:dayList,label:label};
+}
+function showToast(){
+  const t=document.getElementById("toast");
+  t.classList.add("on");
+  setTimeout(function(){t.classList.remove("on")},1500);
+}
+
+function render(){
+  const e=tEntry(),rem=S.dailyBudget-e.spent,over=rem<0;
+  const ms=mStats();
+  const today=new Date();
+  document.getElementById("app").innerHTML=
+    '<div class="hdr"><div><div class="hdr-sub">'+today.toLocaleDateString("de-CH",{weekday:"long",day:"numeric",month:"long"})+'</div><div class="hdr-title">Sparrechner</div></div><button class="gear" onclick="go(\'settings\')">&#9881; Budget</button></div>'+
+    '<div class="nav"><button class="ntab '+(view==="today"?"on":"")+'" onclick="go(\'today\')">Heute</button><button class="ntab '+(view==="month"?"on":"")+'" onclick="go(\'month\')">Monat</button></div>'+
+    (view==="today"?vToday(e,rem,over):"")+
+    (view==="month"?vMonth(ms):"")+
+    (view==="settings"?vSettings():"");
+  if(view==="today"){var i=document.getElementById("ai");if(i)i.value=amt;var n=document.getElementById("ni");if(n)n.value=note;}
+  if(view==="settings"){var b=document.getElementById("bi");if(b)b.value=tmpB;}
+}
+function vToday(e,rem,over){
+  var items=e.items.map(function(it,i){
+    return'<div class="irow"><div style="flex:1"><div class="iname">'+(it.note||"Ausgabe")+'</div><div class="itime">'+it.time+'</div></div><div class="iamt">-'+it.amount.toFixed(2)+'</div><button class="xbtn" onclick="del('+i+')">&#215;</button></div>';
+  }).join("");
+  return'<div class="view">'+
+    '<div class="card"><div class="clbl">Ausgaben heute</div>'+
+    '<div style="text-align:center;padding:10px 0 6px">'+
+    '<div style="font-size:48px;font-weight:800;line-height:1;color:'+(over?"var(--red)":"var(--txt)")+'">'+e.spent.toFixed(2)+'</div>'+
+    '<div style="font-size:12px;color:var(--mut);margin:6px 0 12px">von CHF '+S.dailyBudget.toFixed(2)+'</div>'+
+    '<div class="badge '+(over?"r":"g")+'">'+(over?"&#9650; "+Math.abs(rem).toFixed(2)+" CHF &uuml;berzogen":"&#9660; "+rem.toFixed(2)+" CHF &uuml;brig")+'</div>'+
+    '</div></div>'+
+    '<div class="card"><div class="clbl">Ausgabe erfassen</div>'+
+    '<div class="arow"><input id="ai" class="ainp" type="number" inputmode="decimal" placeholder="0.00" oninput="amt=this.value" onkeydown="if(event.key===\'Enter\')add()"/><span class="unit">CHF</span></div>'+
+    '<input id="ni" class="ninp" type="text" placeholder="Notiz (optional)" oninput="note=this.value" onkeydown="if(event.key===\'Enter\')add()"/>'+
+    '<div class="qrow"><button class="qbtn" onclick="quick(5)">5</button><button class="qbtn" onclick="quick(10)">10</button><button class="qbtn" onclick="quick(20)">20</button><button class="qbtn" onclick="quick(50)">50</button></div>'+
+    '<button class="abtn" onclick="add()">+ Hinzuf&uuml;gen</button></div>'+
+    (e.items.length?'<div class="card"><div class="clbl">Heute</div>'+items+'</div>':'')+
+    '</div>';
+}
+function vMonth(ms){
+  var rows=[];
+  ms.dayList.forEach(function(day){
+    var sp=day.spent,diff=sp!==null?S.dailyBudget-sp:null,ov=diff!==null&&diff<0;
+    var bp=sp!==null?Math.min(100,(sp/S.dailyBudget)*100):0;
+    var label=("0"+day.d).slice(-2)+"."+("0"+(day.m+1)).slice(-2);
+    rows.push('<div class="drow" style="opacity:'+(!day.isPast&&!day.isToday?.3:1)+'">'+
+      '<div class="dnum '+(day.isToday?"td":"")+'">'+label+'</div>'+
+      '<div style="flex:1"><div class="dbar"><div class="dbar-fill" style="width:'+bp+'%;background:'+(ov?"var(--red)":"var(--grn)")+'"></div></div></div>'+
+      '<div class="dmeta">'+(sp!==null?'<div class="dsp" style="color:'+(ov?"var(--red)":"var(--txt)")+'">'+sp.toFixed(2)+'</div><div class="ddf" style="color:'+(ov?"var(--red)":"var(--grn)")+'">'+(ov?"+"+Math.abs(diff).toFixed(2):"-"+diff.toFixed(2))+'</div>':'<span style="font-size:12px;color:var(--brd)">&#8212;</span>')+'</div>'+
+      '</div>');
+  });
+  var sp2=Math.max(0,Math.min(100,(ms.sav/ms.mb)*100));
+  return'<div class="view">'+
+    '<div class="card"><div class="clbl">'+ms.label+'</div>'+
+    '<div class="sgrid">'+
+    '<div class="sbox"><div class="slbl">Budget Periode</div><div class="sval" style="color:var(--mut)">CHF '+ms.mb.toFixed(0)+'</div></div>'+
+    '<div class="sbox"><div class="slbl">Ausgegeben</div><div class="sval" style="color:var(--red)">CHF '+ms.tot.toFixed(2)+'</div></div>'+
+    '<div class="sbox"><div class="slbl">Ersparnis</div><div class="sval" style="color:'+(ms.sav>=0?"var(--grn)":"var(--red)")+'">CHF '+ms.sav.toFixed(2)+'</div></div>'+
+    '<div class="sbox"><div class="slbl">&#216; / Tag</div><div class="sval" style="color:var(--ylw)">'+(ms.cnt>0?"CHF "+(ms.tot/ms.cnt).toFixed(2):"&#8212;")+'</div></div>'+
+    '</div>'+
+    '<div style="margin-top:13px"><div class="pbar-hdr"><span style="font-size:10px;color:var(--mut);letter-spacing:2px;text-transform:uppercase">Sparfortschritt</span><span style="font-size:12px;font-weight:600;color:'+(ms.sav>=0?"var(--grn)":"var(--red)")+'">'+sp2.toFixed(1)+'%</span></div>'+
+    '<div class="pbar-track"><div class="pbar-fill" style="width:'+sp2+'%;background:'+(ms.sav>=0?"var(--grn)":"var(--red)")+'"></div></div></div></div>'+
+    '<div class="card"><div class="clbl">Tages&uuml;bersicht</div>'+rows.join("")+'</div></div>';
+}
+function vSettings(){
+  var btns=[20,30,50,80,100].map(function(p){return'<button class="pbtn '+(tmpB==p?"on":"")+'" onclick="preset('+p+')">'+p+'</button>';}).join("");
+  return'<div class="view"><div class="card"><div class="clbl">Tagesbudget festlegen</div>'+
+    '<div class="arow" style="margin-bottom:13px"><input id="bi" class="ainp" type="number" inputmode="decimal" placeholder="50" oninput="tmpB=this.value"/><span class="unit">CHF</span></div>'+
+    '<div class="prgrid">'+btns+'</div>'+
+    '<button class="sbtn" onclick="saveBudget()">Speichern</button></div></div>';
+}
+function go(v){view=v;render()}
+function quick(v){amt=String(v);render();var i=document.getElementById("ai");if(i){i.focus();i.value=v;}}
+function preset(v){tmpB=String(v);render()}
+function add(){
+  var a=parseFloat(amt);
+  if(isNaN(a)||a<=0)return;
+  var k=tKey(),prev=S.entries[k]||{spent:0,items:[]};
+  var time=new Date().toLocaleTimeString("de-CH",{hour:"2-digit",minute:"2-digit"});
+  S.entries[k]={spent:prev.spent+a,items:prev.items.concat([{amount:a,note:note.trim()||null,time:time}])};
+  amt="";note="";save();showToast();render();
+}
+function del(i){
+  var k=tKey(),prev=S.entries[k];if(!prev)return;
+  var ni=prev.items.filter(function(_,j){return j!==i;});
+  S.entries[k]={spent:ni.reduce(function(s,x){return s+x.amount;},0),items:ni};
+  save();render();
+}
+function saveBudget(){
+  var v=parseFloat(tmpB);
+  if(!isNaN(v)&&v>0){S.dailyBudget=v;save();go("today");}
+}
+render();
+</script>
+</body>
+</html>
